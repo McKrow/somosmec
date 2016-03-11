@@ -24,6 +24,9 @@ if(isset($xml["type"])){
 			$_SESSION[$sesion]["number"] = $number;
 			$_SESSION[$sesion]["ussdcode"] = $ussdcode;
 			
+			$_SESSION[$sesion]["invokeId"] = $xml->processUnstructuredSSRequest_Request["invokeId"];
+
+
 			$_SESSION[$sesion]["interaction"] = 1;
 			$rows = $db->getMenuInteraction($_SESSION[$sesion]["interaction"]
 				,$_SESSION[$sesion]["ussdcode"]);
@@ -47,6 +50,7 @@ if(isset($xml["type"])){
 			$db->addTransaction ($number, $_SESSION["menu"], $_SESSION[$sesion]["ussdcode"]
 								,$item, $ussdcode,$session);
 
+			
 			$_SESSION[$sesion]["interaction"] = $_SESSION[$sesion]["interaction"] + 1;
 
 			$rows = $db->getMenuInteraction($_SESSION[$sesion]["interaction"] ,
@@ -62,7 +66,7 @@ if(isset($xml["type"])){
 			
 			$outXML = createXmlRequestResponse($menu, $op, $xml,$sesion );
 			echo "$outXML";
-				fwrite($myfile, "\n".$outXML);
+			fwrite($myfile, "\n".$outXML);
 			break;
 
 		case 'End':
@@ -77,6 +81,7 @@ if(isset($xml["type"])){
 	fclose($myfile);
 	$db->close();
 }
+
 
 
 function getMenuOptions($info){
@@ -133,6 +138,10 @@ function createXmlRequestResponse($response, $type, $xml, $session ){
 	}else if ($type=="End"){
 		
 		$xml->addAttribute("prearrangedEnd","false");
+		
+
+		$xml->processUnstructuredSSRequest_Response->addAttribute("invokeId",$_SESSION[$session]["invokeId"]);
+		
 		//$xml["processUnstructuredSSRequest_Response"] = $xml->unstructuredSSRequest_Response;
 		$xml->addChild("processUnstructuredSSRequest_Response" , $xml->unstructuredSSRequest_Response);
 		$xml->processUnstructuredSSRequest_Response->addAttribute("invokeId",$xml->unstructuredSSRequest_Response["invokeId"]);
