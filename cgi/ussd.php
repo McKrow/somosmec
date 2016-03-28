@@ -22,16 +22,15 @@ if(isset($xml["type"])){
 			$ussdcode = (string)$xml->processUnstructuredSSRequest_Request["string"];
 			$number = (string)$xml->processUnstructuredSSRequest_Request->msisdn["number"];
 			$_SESSION[$sesion]["number"] = $number;
-			$_SESSION[$sesion]["ussdcode"] = $ussdcode;
-			
+			$_SESSION[$sesion]["ussdcode"] = $ussdcode;	
 			$_SESSION[$sesion]["invokeId"] = $xml->processUnstructuredSSRequest_Request["invokeId"];
 
 
 			$_SESSION[$sesion]["interaction"] = 1;
-			$rows = $db->getMenuInteraction($_SESSION[$sesion]["interaction"]
-				,$_SESSION[$sesion]["ussdcode"]);
+			$rows = $db->getMenuInteraction("",$_SESSION["ussd"]);
 			
-			$menu = getMenuOptions($rows);
+			getMenuOptions($rows);
+
 			//echo $menu;
 			$outXML = createXmlResponse($menu, "Continue", $xml, $sesion );
 			echo "$outXML";
@@ -43,12 +42,37 @@ if(isset($xml["type"])){
 			$ussdcode = (string)$xml->unstructuredSSRequest_Response["string"];
 			$number = (string)$xml->unstructuredSSRequest_Response->msisdn["number"];
 			//getItemInteraction($_SESSION["interaction"], $_SESSION["ussd"], $_POST["command"]);
+			if(isset($_SESSION["goto"]))
+						$_POST["command"]="";
+
+			$opts = $db->getMenuByText($_SESSION["idmenu"],$_POST["command"]);
+			while($item = mysqli_fetch_array($opts)) {
+				$_SESSION["itemname"] = $item["name"];
+				$_SESSION["type"] = $item["type"];
+				if(isset($item["goto"]))
+					$_SESSION["next_menu"] = $item["goto"];
+				else
+					$_SESSION["next_menu"] = $item["next_menu"];
+   			}
+
+   			$db->addTransaction ($_POST["mobile"], $_SESSION["menu"], 
+   						$_SESSION["ussd"], $_SESSION["itemname"], $_POST["command"],
+   					 	$_SESSION["sesion"],$_SESSION["idmenu"],$_POST["command"]);
+					
+   			if($_SESSION["type"] ==1 && isset($_SESSION["next_menu"])){
+   			$rows = $db->getMenuInteractionByIDMenu($_SESSION["next_menu"]);
+						getMenuOptions($rows);
+
+   			}
+
+
+
 			$item= $db->getItemInteraction($_SESSION[$sesion]["interaction"], 
 				$_SESSION[$sesion]["ussdcode"], $ussdcode);
 			
 			
 			$db->addTransaction ($number, $_SESSION["menu"], $_SESSION[$sesion]["ussdcode"]
-								,$item, $ussdcode,$session);
+								,$item, $ussdcode,$session,$_SESSION["idmenu"], $item);
 
 			
 			$_SESSION[$sesion]["interaction"] = $_SESSION[$sesion]["interaction"] + 1;
@@ -91,6 +115,9 @@ function getMenuOptions($info){
 	$menuname = "";
 	while($item = mysqli_fetch_array($info)) {
 		$_SESSION["menu"] = $item["label"];
+		$_SESSION["idmenu"] = $item["idmenu"];
+		$_SESSION["next_menu"] = $item["goto"];
+		$_SESSION["goto"] = $item["goto"];
 		$menuname = $item["label"];
    		$coma ="";
    		if($i!=0)

@@ -26,21 +26,36 @@ if(isset($_POST)){
 			$table = $_POST["table"];
 			switch($table){
 				case "menu":
-					$val = $db->addMenu($_POST["name"], $_POST["label"]);
+					$val=0;
+					$goto=0;
+					if($_POST["anytext"] =="true")
+						$val=1;
+					if(isset($_POST["goto"]))
+						$goto=$_POST["goto"];
+
+					$val = $db->addMenu($_POST["name"], $_POST["label"],$val,$goto);
 					if($val == 0)
 					$desc = "Registro ingresado correctamente";
 					printOuput($val, $desc);
 				break;
 				case "item":
 					// Borramos los item actual
-					if(count($_POST["items"]) > 0){
-							 $db->deleteItemByIdMenu($_POST["idmenu"]);
-					}
+					//if(count($_POST["items"]) > 0){
+					//		 $db->deleteItemByIdMenu($_POST["idmenu"]);
+					//}
+				/*
+items.push( $("#itemType").val());
+    items.push( $("#itemText").val());
+    items.push( $("#menuList").val());
+    items.push( $("#itemUrl").val());
+				*/
 					$i = 0;
-					foreach ($_POST["items"] as &$value) {
+					//foreach ($_POST["items"] as &$value) {
 						$i++;
-					    $val = $db->addItem($_POST["idmenu"], $value, $i);
-					}
+					    $val = $db->addItem($_POST["idmenu"],$_POST["items"][1]
+					    	, $i, $_POST["items"][0], $_POST["items"][3], $_POST["items"][2]);
+					  //  addItem($idmenu, $name,$orden, $type, $url, $nextmenu)
+					//}
 					$desc = "Items actualizado exitosamente";
 					printOuput($val, $desc);
 				break;
@@ -79,6 +94,11 @@ if(isset($_POST)){
 					$desc = "Registro borrado correctamente";
 					printOuput($val, $desc);
 				break;
+				case "item":
+				 	$val = $db->deleteItemById($_POST["iditem"]);
+					$desc = "Registro borrado correctamente";
+					printOuput($val, $desc);
+				break;
 			}
 		break;
 		case "query":
@@ -96,9 +116,9 @@ if(isset($_POST)){
 							$coma="";
 
 						$i++;
-						$resp.= $coma.'{"q":"'.$item["menu"].'","op":[' ;
+						$resp.= $coma.'{"q":"'.$item["name"]." - ".$item["label"].'","op":[' ;
 						
-						$options = $db->getSummaryByMenu($ussdcode , $item["menu"],$_POST["fechaIni"] , $_POST["fechaFin"]);
+						$options = $db->getSummaryByMenu($ussdcode , $item["idmenu"],$_POST["fechaIni"] , $_POST["fechaFin"]);
 						$j=0;
 						while($op = mysqli_fetch_array($options)) {
 								$coma2=",";
@@ -129,12 +149,12 @@ if(isset($_POST)){
 					
 					while($item = mysqli_fetch_array($result)) {
 						array_push($fechas,$item["fecha"]);
-						array_push($menus,$item["menu"]);
+						array_push($menus,$item["idmenu"]);
 						array_push($opciones,$item["command"]);
 						//$all[$item["fecha"]=>$item["menu"]];
 						//array_push($all,array($item["fecha"]=> array($item["menu"]=>array($item["command"]=>$item["cant"]))));
-						$all1[$item["fecha"]][$item["menu"]][$item["command"]] = $item["cant"];
-						array_push($all,array($item["fecha"]=> array($item["menu"]=>array($item["command"]=>$item["cant"]))));
+						$all1[$item["fecha"]][$item["idmenu"]][$item["command"]] = $item["cant"];
+						array_push($all,array($item["fecha"]=> array($item["idmenu"]=>array($item["command"]=>$item["cant"]))));
 					}
 					$fechas = array_unique($fechas);
 					
@@ -229,16 +249,44 @@ if(isset($_POST)){
 					$_SESSION["interaction"] = 1;
 					$_SESSION["ussd"] = $_POST["command"];
 					$_SESSION["sesion"] = gen_uuid();
-					$rows = $db->getMenuInteraction($_SESSION["interaction"],$_SESSION["ussd"]);
+					$rows = $db->getMenuInteraction("",$_SESSION["ussd"]);
 					getMenuOptions($rows);
 				break; 
 				case "CONTINUE":
+
+				//		$db->getItemInteraction($_SESSION["interaction"], $_SESSION["ussd"], $_SESSION["idmenu"],$_POST["command"]);
+
+				//	$_SESSION["interaction"] = ($_SESSION["interaction"] +1 );
+					if(isset($_SESSION["goto"]))
+						$_POST["command"]="";
+
+					$opts = $db->getMenuByText($_SESSION["idmenu"], 
+							$_POST["command"]);
+					while($item = mysqli_fetch_array($opts)) {
+						$_SESSION["itemname"] = $item["name"];
+						$_SESSION["iditem"] = $item["iditem"];
+						$_SESSION["type"] = $item["type"];
+						if(isset($item["goto"]))
+							$_SESSION["next_menu"] = $item["goto"];
+						else
+							$_SESSION["next_menu"] = $item["next_menu"];
+   					}
+
+   					$db->addTransaction ($_POST["mobile"], $_SESSION["menu"], 
+   						$_SESSION["ussd"], $_SESSION["itemname"], $_POST["command"],
+   					 	$_SESSION["sesion"],$_SESSION["idmenu"],$_SESSION["iditem"]);
 					
-					$item= $db->getItemInteraction($_SESSION["interaction"], $_SESSION["ussd"], $_POST["command"]);
-					$db->addTransaction ($_POST["mobile"], $_SESSION["menu"], $_SESSION["ussd"], $item, $_POST["command"], $_SESSION["sesion"]);
-					$_SESSION["interaction"] = ($_SESSION["interaction"] +1 );
-					$rows = $db->getMenuInteraction($_SESSION["interaction"], $_SESSION["ussd"]);
-					getMenuOptions($rows);
+   					if($_SESSION["type"] ==1 && isset($_SESSION["next_menu"])){
+   						$rows = $db->getMenuInteractionByIDMenu($_SESSION["next_menu"]);
+						getMenuOptions($rows);
+
+   					}
+
+
+					//$item= $db->getItemInteraction($_SESSION["interaction"], $_SESSION["ussd"], $_POST["command"]);
+					// //$item, $_POST["command"], $_SESSION["sesion"]);
+					//$_SESSION["interaction"] = ($_SESSION["interaction"] +1 );
+					
 
 				break;
 				case "END":
@@ -305,6 +353,9 @@ function getMenuOptions($info){
 	$menuname = "";
 	while($item = mysqli_fetch_array($info)) {
 		$_SESSION["menu"] = $item["label"];
+		$_SESSION["idmenu"] = $item["idmenu"];
+		$_SESSION["next_menu"] = $item["goto"];
+		$_SESSION["goto"] = $item["goto"];
 		$menuname = $item["label"];
    		$coma ="";
    		if($i!=0)

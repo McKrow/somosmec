@@ -49,15 +49,17 @@ class LocalDB {
 
 	function getItemsByMenuId($idMenu){
 		
-		$strSQL = "select * from item where idmenu = $idMenu";
+		$strSQL = "select a.*, type, b.name menu from item a left join menu b on (next_menu = b.idmenu) ";
+		$strSQL .= " where a.idmenu = $idMenu";
+		error_log( "$strSQL",0);
 		return mysqli_query( $this->connection,$strSQL);
 	}
 
 
-	function addMenu($name, $label){
+	function addMenu($name, $label, $anyText, $goto){
 		$name = addslashes($name);
 		$label =  addslashes($label);
-		$sql = "INSERT INTO menu (name, label) values ('$name','$label')";
+		$sql = "INSERT INTO menu (name, label, anytext, goto) values ('$name','$label',$anyText,$goto)";
 		if(mysqli_query( $this->connection,$sql)===TRUE){
 			//error_log( "$strSQL",0);
 			return mysqli_insert_id($this->connection);
@@ -70,10 +72,11 @@ class LocalDB {
 
 
 
-	function addItem($idmenu, $name,$orden){
+	function addItem($idmenu, $name,$orden, $type, $url, $nextmenu){
 		$name = addslashes($name);
 		$label =  addslashes($label);
-		$sql = "INSERT INTO item (name, idmenu, orden) values ('$name','$idmenu', $orden)";
+		$sql = "INSERT INTO item (name, idmenu, type, next_menu, url, orden) ";
+		$sql .="values ('$name','$idmenu', $type, $nextmenu, '$url', $orden)";
 		if(mysqli_query( $this->connection,$sql)===TRUE){
 			//error_log( "$strSQL",0);
 			return mysqli_insert_id($this->connection);
@@ -99,10 +102,10 @@ class LocalDB {
 
 	}
 
-	function addTransaction ($msisdn,$menu, $ussd , $command, $label, $session){
+	function addTransaction ($msisdn,$menu, $ussd , $command, $label, $session,$idmenu, $iditem){
 
-	$sql = "INSERT INTO transactions (msisdn,menu, ussd, command, label, sessionId) ";
-	$sql .= "values ('$msisdn', '$menu', '$ussd','$command', '$label', '$session')";
+	$sql = "INSERT INTO transactions (msisdn,menu, ussd, command, label, sessionId,idmenu, iditem) ";
+	$sql .= "values ('$msisdn', '$menu', '$ussd','$command', '$label', '$session',$idmenu, '$iditem')";
 		if(mysqli_query( $this->connection,$sql)===TRUE){
 			//error_log( "$strSQL",0);
 			return mysqli_insert_id($this->connection);
@@ -153,48 +156,67 @@ class LocalDB {
 
 
 	function getMenuList($ussd, $dateinit, $dateEnd){
-		$sql = 'select  distinct menu from transactions a,
-ussd_codes b, tree c, menu d
-where  code = ussd
-and b.idcode = c.idcode 
-and d.idmenu = c.idmenu
-and c.idmenu  = d.idmenu
-and d.label = menu
-and ussd= "'.$ussd.'" and a.event_date between "'.$dateinit.'" AND "'.$dateEnd.'"';
+		$sql = 'select distinct b.idmenu, b.name, b.label label from 
+transactions a, menu b
+where a.idmenu = b.idmenu and ussd= "'.$ussd.'" and a.event_date between "'.$dateinit.'" AND "'.$dateEnd.'"';
 	//	$sql .= "group BY command, menu, DATE_FORMAT(event_date, '%d-%m-%Y')";
-		error_log( "$sql, Falla  borrar detalle: " . mysqli_error($this->connection),0);
+		error_log( "$sql,Consulta menu: " . mysqli_error($this->connection),0);
 		return mysqli_query( $this->connection,$sql);
 	}
 
 
 	function getSummaryByMenu($ussd, $menu, $dateinit, $dateEnd){
 		$sql = "select  count(1) value, command  from transactions  where command is not null ";
-		$sql .= "and ussd= '$ussd' and menu ='$menu' and  event_date between '$dateinit' AND '$dateEnd' ";
+		$sql .= "and ussd= '$ussd' and idmenu ='$menu' and  event_date between '$dateinit' AND '$dateEnd' ";
 		$sql .= "group by command";
-		//error_log( "$sql",0);
+		error_log( "$sql",0);
 		return mysqli_query( $this->connection,$sql);
 	}
 
 	function getSummaryByDate($ussd,$dateIni, $dateFin){
-		$sql =  'select   DATE_FORMAT(event_date, "%d-%m-%Y") fecha , menu, command , count(command) cant
+		$sql =  'select   DATE_FORMAT(event_date, "%d-%m-%Y") fecha , idmenu, command , count(command) cant, iditem
 				from transactions  where command is not null 
 				and ussd= "'.$ussd.'"  
 				and  event_date between "'.$dateIni.'" AND "'.$dateFin.'" 
-				group by  DATE_FORMAT(event_date, "%d-%m-%Y") ,menu, command  
+				group by  DATE_FORMAT(event_date, "%d-%m-%Y") ,idmenu, command  ,iditem
 				order by event_date asc';
-		//error_log( "$sql",0);
+		error_log( "getSummaryByDate: $sql",0);
 		return mysqli_query( $this->connection,$sql);
 		
 
 	}
 
-	function getMenuInteraction($orden, $ussdcode){
-		$strSQL = 'select c.name, c.label, d.name as itemname  from ussd_codes a
+
+	function getMenuByText($idMenu, $text){
+		$sql="select * from item where idmenu = $idMenu and instr(name,'$text')=1";
+		error_log( "$sql",0);
+		return mysqli_query( $this->connection,$sql);		
+	}
+
+	function getMenuInteraction($idmenu , $ussdcode){
+		$strSQL = 'select c.goto, c.idmenu, iditem, c.name, c.label, d.name as itemname  from ussd_codes a
 				inner join tree b on (b.idcode = a.idcode)
 				inner join menu c on (b.idmenu = c.idmenu)
 				left join item d on (d.idmenu = c.idmenu)
-				where  code = "'.$ussdcode.'" and b.orden = '. $orden;
-				//error_log( "$strSQL",0);
+				where  code = "'.$ussdcode.'" '; 
+
+			if($idmenu!=""){
+				$strSQL .=" and c.idmenu =  $idmenu ";
+			}
+			$strSQL .= " order by d.name asc";	
+		error_log( "$strSQL",0);
+		return mysqli_query( $this->connection,$strSQL);
+	}
+
+	function getMenuInteractionByIDMenu($idmenu){
+		$strSQL = 'select a.idmenu, iditem, a.name, 
+			a.label, b.name as itemname, 
+			type, next_menu, url
+			from menu a left join item b on (a.idmenu = b.idmenu)
+			where a.idmenu ='.$idmenu .' order by b.name asc';
+			
+			
+		error_log( "$strSQL",0);
 		return mysqli_query( $this->connection,$strSQL);
 	}
 
@@ -237,13 +259,27 @@ and ussd= "'.$ussd.'" and a.event_date between "'.$dateinit.'" AND "'.$dateEnd.'
 		}
 
 	}
+
+
+//Funcion para borrar el un menu
+	function deleteItemById($iditem){
+
+		$strSQL = "DELETE FROM item WHERE iditem = $iditem";
+		
+		if(mysqli_query( $this->connection,$strSQL)===TRUE){
+			//error_log( "$strSQL",0);
+
+			return mysqli_affected_rows($this->connection);
+		}else{
+			error_log( "$strSQL, Falla  borrar detalle: " . mysqli_error($this->connection),0);
+			return 0;
+		}
+
+	}
+
 	function getAllMenuItem($ussdcode, $menu){
-		$sql = 'select d.name from ussd_codes a 
-		inner join tree b on (a.idcode = b.idcode) 
-		inner join menu c on (c.idmenu = b.idmenu) 
-		inner join item d on (d.idmenu = b.idmenu)
-		where  c.label ="'.$menu.'"
-		and  code ="'.$ussdcode.'"';
+		$sql = 'select d.name from item d 
+		where  d.idmenu ="'.$menu.'"';
 		error_log( "$sql",0);
 		return mysqli_query( $this->connection,$sql);
 	}

@@ -49,26 +49,45 @@
     <script>
    
   
- 
-/*
-  function  setEvents(id){
-        $("#download"+id).click(function() {
-            window.location = 'cgi/download.php?id='+id;
-        });
 
-        $("#trash"+id).click(function() {
-            var r = confirm("Esta seguro de borrar este registro");
-                if (r == true) {
-                    var posting = $.post( "cgi/delete.php", { "accion":"DEL","id":id} );
+ $( document ).ready(function() {
+    $("#msg").hide();
+    $("#urlInput").hide();
 
-                    posting.done(function( data ) {
-                        $('#tr'+id).remove();
-                    });
-                }
-        });
+     $("#listmenu").hide()
+
+
+    $("#itemType").change(function(){
+      if($(this).val() ==1){
+        $("#menuInput").show();
+        $("#urlInput").hide();
+      }else{
+        $("#menuInput").hide();
+        $("#urlInput").show();
+      }
+
+    });
+
+    $("#anyText").click(function(){
+        if($(this).is(':checked')){
+         $("#listmenu").show()
+          $("#menuList1 option").remove();
+          $("#menuList option").clone().appendTo("#menuList1");
+           $("#menuList1 option[value='-1']").remove();
+
+        }else{
+           $("#listmenu").hide()
+        }
+    })
+
+
+
+ });
+
+  function showItemModal(){
+    $('#modalItem').modal('toggle')
 
   }
-*/
 
 
 /** 
@@ -78,32 +97,20 @@ Metodo para agregar los eventos pricipales de cada lista
 
 function setEvents(idMenu){
   
-  $( "#list_" +idMenu).sortable();
-  $( "#list_"+idMenu).disableSelection();
+
+ // $( "#list_" +idMenu).sortable();
+ // $( "#list_"+idMenu).disableSelection();
      
 
-  $("#save_"+idMenu).click(function(){
-   var btn = $(this).button('loading')
-    var items = new Array();
-    jQuery("#list_"+idMenu+" li span").each(function(){
-      if($(this).text()!= "")
-          items.push($(this).text());
-    });
-
-    var success = function (data){
-      btn.button('reset');
-    }
-     var data =  { idmenu:idMenu, action:"add", table:"item", items:items } ;
-       callAjax(data,success); 
-      event.preventDefault()
-
-  });
+ 
 
 
   $("#close_"+idMenu).click(function (){
      var r = confirm("¿Esta seguro de borrar este menu?");
                 if (r == true) {
                   var success = function ( data){
+                      $("#menuList option[value='"+idMenu+"']").remove();
+
                      $("#op_"+idMenu).remove()
                   }
                   var data =  { idmenu:idMenu, action:"delete", table:"menu" } ;
@@ -112,42 +119,118 @@ function setEvents(idMenu){
                 }
         
   })
-  $("#add_"+idMenu).click(function(){
+  $("#add_"+idMenu).on("click",{"idMenu":idMenu},function(event){
+    idMenu = event.data.idMenu;
+    $("#msg").hide();
+    showItemModal();
 
-    id = getId("a");
-    idValue = idMenu+"_"+ id
+    $( "#addElement" ).unbind( "click" );
+    $("#addElement").bind("click",{"idMenu":idMenu},function(event){
 
-   var htmlValue = '<div><span aria-hidden="true" class="glyphicon glyphicon-option-vertical"></span><span>'+  $("#txtItem_"+idMenu).val()
-       htmlValue += '</span><div class="pull-right" style="float:right;">'
-       htmlValue += '<button id="trash_'+idValue+'" type="button" class="pull-right btn btn-default btn-xs">'
-       htmlValue +='<span class="glyphicon glyphicon-trash" aria-hidden="true"></span>'
-       htmlValue +='</button>'
-       htmlValue +='</div>'
-       htmlValue +='</div></li>';
+      if( $("#itemText").val() ==""){
+      $("#msg").html("Por favor escriba la <strong>opcion</strong> que debe mostrarse");
+        $("#msg").show();
+        return; 
+      }
 
-   $("#txtItem_"+idMenu).val("")
-    var el = document.createElement('li');
 
-   $( el ,{
-    'class': 'list-group-item ui-sortable-handle'
-  }).appendTo("#list_"+idMenu);
-   $(el).attr({id:"item_"+idValue});
-   $(el).html(htmlValue)
-   $(el).addClass("list-group-item ui-sortable-handle")
-   
-   setTrashItemEvent(idMenu, id)
-    event.preventDefault()
+      if($("#itemType").val()==1){
+        if($("#menuList").val()==-1){
+          $("#msg").html("Por favor seleccione el <strong>menu</strong> que debe mostrarse");
+          $("#msg").show();
+           return;
+        }
+      }else{
+          if($("#itemUrl").val()==""){
+          $("#msg").html("Por favor ingrese la <strong>URL</strong> a invocar");
+          $("#msg").show();
+          return;
+        }
+      }
 
+    
+      addItem(idMenu);
+    
+    })
+ 
 })
 
 }
+
+ function addItem(idMenu){
+   //var btn = $(this).button('loading')
+    var items = new Array();
+    //jQuery("#list_"+idMenu+" li span").each(function(){
+    //  if($(this).text()!= "")
+    //      items.push($(this).text());
+   // });
+
+    items.push( $("#itemType").val());
+    items.push( $("#itemText").val());
+    items.push( $("#menuList").val());
+    items.push( $("#itemUrl").val());
+
+    var success = function (data){
+     // btn.button('reset');
+      addItemGui(idMenu, data.error,items);
+    }
+     var data =  { idmenu:idMenu, action:"add", table:"item", items:items } ;
+      callAjax(data,success); 
+      event.preventDefault()
+
+}
+
+
+ function addItemGui(idMenu,iditem,items){
+
+      // idMenu = event.data.idMenu
+        id = iditem;
+        idValue = idMenu+"_"+ id
+      text= $("#itemType option:selected").text();
+      menu= $("#menuList option:selected").text();
+      url= $("#itemUrl").val();
+      
+       var htmlValue = '<div><span aria-hidden="true"></span> '
+        htmlValue += '<b>Item: </b>'+  $("#itemText").val() 
+        htmlValue += '<br/><b>Tipo: </b>'+  text
+        if(url!="") 
+          htmlValue += '<br/><b>URL: </b>'+ url
+        else
+          htmlValue += '<br/><b>Menu: </b>'+ menu
+
+        htmlValue += '</span><div class="pull-right" style="float:right;">'
+        htmlValue += '<button id="trash_'+idValue+'" type="button" class="pull-right btn btn-default btn-xs">'
+        htmlValue +='<span class="glyphicon glyphicon-trash" aria-hidden="true"></span>'
+        htmlValue +='</button>'
+        htmlValue += '<button id="edit_'+idValue+'" type="button" class="pull-right btn btn-default btn-xs">'
+        htmlValue +='<span class="glyphicon glyphicon-edit" aria-hidden="true"></span>'
+        htmlValue +='</button>'
+        htmlValue +='</div>'
+        htmlValue +='</div></li>';
+
+       $("#itemText").val("")
+        var el = document.createElement('li');
+
+       $( el ,{
+        'class': 'list-group-item ui-sortable-handle'
+      }).appendTo("#list_"+idMenu);
+       $(el).attr({id:"item_"+idValue});
+       $(el).html(htmlValue)
+       $(el).addClass("list-group-item ui-sortable-handle")
+       
+       setTrashItemEvent(idMenu, id);
+       showItemModal();
+       event.preventDefault()
+
+
+ }
 
 
 function getId(preffix){
   return preffix + Math.floor((Math.random() * 100000) + 1);
 }
 
-function addMenu(name, level, id){
+function addMenu(name, level,anytext, id){
  //id = getId("a");
  var el = document.createElement('div');
  $( el ,{
@@ -166,9 +249,10 @@ var htmlValue='<div id="op_'+id+'" style="padding-left: 0px;"" class="col-xs-6">
   htmlValue+= '      <ul id="list_'+id+'" class="list-group"></ul>'
   htmlValue+= '    </div>'
   htmlValue+= '    <div class="panel-footer form-inline">  '
-  htmlValue+= '      <input id="txtItem_'+id+'" type="text" class="form-control"  placeholder="Nuevo item">'
-   htmlValue+= '      <a id="add_'+id+'" class="btn btn-default btn-sm" href="#"  role="button">Agregar</a>'
-   htmlValue+= '      <a id="save_'+id+'" class="btn btn-primary btn-sm" href="#" data-loading-text="Espere..."  role="button">Guardar</a>'
+//  htmlValue+= '      <input id="txtItem_'+id+'" type="text" class="form-control"  placeholder="Nuevo item">'
+  if(!anytext)
+   htmlValue+= '      <a id="add_'+id+'" class="btn btn-default btn-sm" href="#"  role="button">Agregar Item</a>'
+//   htmlValue+= '      <a id="save_'+id+'" class="btn btn-primary btn-sm" href="#" data-loading-text="Espere..."  role="button">Guardar</a>'
    htmlValue+= '   </div>'                
    htmlValue+= ' </div>'
   htmlValue+= '</div>'
@@ -178,14 +262,19 @@ $(el).hide().fadeIn(500)
    setEvents(id)
 }
 
-function setTrashItemEvent(idMenu,idItem){
-  $("#trash_"+idMenu+"_"+idItem).click(function(){
-      $("#item_"+idMenu+"_"+idItem).remove()
-      event.preventDefault()
+  function setTrashItemEvent(idMenu,idItem){
+    $("#trash_"+idMenu+"_"+idItem).click(function(){
 
+        var r = confirm("¿Esta seguro de borrar este item?");
+          if (r == true) {
+            var success = function ( data){
+              $("#item_"+idMenu+"_"+idItem).remove()
+              event.preventDefault()
+            }
+            var data =  { "iditem": idItem,idmenu:idMenu, action:"delete", table:"item" } ;
+              callAjax(data,success); 
+            }
   })
-
-
 }
 
 </script>
@@ -193,6 +282,70 @@ function setTrashItemEvent(idMenu,idItem){
 
 <body>
    
+  <div id="modalItem" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Item del Menu</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal">
+          <div class="form-group">
+            <label for="itemText"  class="col-sm-2 control-label">Contenido: </label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="itemText" placeholder="Item">
+            </div>
+
+          </div>
+
+          <div id="typeInput" class="form-group">
+             <label for="itemType" class="col-sm-2 control-label">Accion del Item: </label>
+             <div class="col-sm-10">
+                <select id="itemType" class="form-control">
+                  <option value="1">Ir al Menu...</option>
+                  <option value="2">Redireccionar peticion</option>
+                </select>
+             </div>
+          </div>
+
+          <div id="menuInput" class="form-group">
+             <label for="menuList" class="col-sm-2 control-label">Ir al menu: </label>
+             <div class="col-sm-10">
+                <select id="menuList" class="form-control" >
+                  <option value="-1">Seleccione el menu</option>
+                  <?php
+
+                    $result = $db->getMenus();
+                    while($row = mysqli_fetch_array($result)) {
+                      echo  "<option value='".$row["idmenu"]."'>".$row["name"]."</option>";
+                    }
+
+                  ?>
+                </select>
+             </div>
+          </div>
+
+
+          <div id="urlInput" class="form-group">
+             <label for="itemUrl" class="col-sm-2 control-label">URL: </label>
+             <div class="col-sm-10">
+              <input type="text" class="form-control" id="itemUrl" placeholder="http://">
+             </div>
+          </div>
+
+        </form>
+      <div id="msg" class="alert alert-warning" role="alert"></div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+        <button id="addElement" type="button" class="btn btn-primary">Guardar</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+  </div><!-- /.modal -->
+ 
     <!-- Navigation -->
 <div class="navbar navbar-inverse navbar-fixed-top"  role="navigation">
       <div class="container-fluid">
@@ -227,7 +380,7 @@ function setTrashItemEvent(idMenu,idItem){
           <div id="formRow" class="row">
            <div class="col-md-12">
 
-<form class="form-inline">
+<form class="form">
   <div class="form-group">
     <label for="name">Nombre del Menu: </label>
     <input type="text" class="form-control" id="name" placeholder="Nombre del Menu">
@@ -235,7 +388,20 @@ function setTrashItemEvent(idMenu,idItem){
   <div class="form-group">
     <label for="label">Pregunta a mostrar: </label>
     <input type="text" class="form-control" id="label" placeholder="Etiqueta a mostrar">
+       
   </div>
+  <div class="form-group">
+    <input id="anyText" value="1"  type="checkbox"> Espera cualquier texto  
+  </div>
+  <div id="listmenu" class="form-group">
+     <label for="menuList1" >Ir al menu: </label>
+          
+                <select id="menuList1" class="form-control" >
+                  <option value="-1">Seleccione el menu</option>
+                 
+                </select>
+    </div>  
+      <br/>
         <a id="addMenu"  data-loading-text="Loading..."  class="btn btn-primary" href="javascript:return false" role="button">
           <span class="glyphicon glyphicon-plus"></span> Agregar
         </a>
@@ -249,24 +415,21 @@ function setTrashItemEvent(idMenu,idItem){
           </div>
        </br>
        <div id="startMenu"></div>
-               <?php
-                        $result = $db->getMenus();
-                        //$cant = = mysqli_fetch_array($result, MYSQL_NUM );
+       <?php
+        mysqli_data_seek($result, 0);
+        //$result = $db->getMenus();
+        //$cant = = mysqli_fetch_array($result, MYSQL_NUM );
+        $i = 0;
 
-                        $i = 0;
-                        while($row = mysqli_fetch_array($result)) {
-                       
-                       if($i==0){
-                        
-                        echo "<div class='row'>";
-                      }
-
-                        if (($i%2)==0  && $i!=0){
-                         echo "</div>";
-                         echo "<div class='row'>";
-                        }
-
-                        ?>
+        while($row = mysqli_fetch_array($result)) {
+          if($i==0){
+            echo "<div class='row'>";
+          }
+          if (($i%2)==0  && $i!=0){
+            echo "</div>";
+            echo "<div class='row'>";
+          }
+      ?>
 
 
                         <div id="op_<?php echo $row["idmenu"] ?>" class="col-xs-6">
@@ -281,13 +444,27 @@ function setTrashItemEvent(idMenu,idItem){
                            <?php
                                $items = $db->getItemsByMenuId($row["idmenu"]);
                                while($item = mysqli_fetch_array($items)) {
-                                 echo '<li id="item_'.$row["idmenu"].'_'.$item["iditem"].'"" class="list-group-item"> <div><span aria-hidden="true" class="glyphicon glyphicon-option-vertical"></span><span>'.$item["name"]."</span>";
+                                echo '<li id="item_'.$row["idmenu"].'_'.$item["iditem"].'"" ';
+                                echo 'class="list-group-item"> <div><span>';
+                                echo '<b>Item: </b> '.$item["name"];
+                                if(isset($item["url"])){
+                                 echo '</br><b>Tipo: </b>Redireccionar Petici&oacute;n';
+                                 echo '</br><b>URL: </b> '.$item["url"];
+                                }else{
+                                 echo '</br><b>Tipo:</b>Ir la Menu ';
+                                 echo '</br><b>Menu: </b> '.$item["menu"];
+                               }
+                              echo "</span>";
+                                 
                                  ?>
                                    <div class="pull-right" style="float:right;">
                                   
 
                                     <button id="trash_<?php echo $row["idmenu"]."_".$item["iditem"]?>" type="button" class="pull-right btn btn-default btn-xs">
-                                      <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                                      <span class="glyphicon glyphicon-trash" aria-hidden="true"> </span>
+                                    </button>&nbsp;
+                                     <button id="edit_<?php echo $row["idmenu"]."_".$item["iditem"]?>" type="button" class="pull-right btn btn-default btn-xs">
+                                      <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
                                     </button>
                                     <script type="text/javascript">
                                     setTrashItemEvent("<?php echo $row["idmenu"] ?>","<?php echo $item["iditem"] ?>")
@@ -305,11 +482,12 @@ function setTrashItemEvent(idMenu,idItem){
                           </ul>
 
                           </div>
-                            <div class="panel-footer form-inline">  
-                              <input id="<?php echo "txtItem_".$row["idmenu"] ?>" type="text" class="form-control"  placeholder="Nuevo item">
-                              <a id="<?php echo "add_".$row["idmenu"] ?>"  class="btn btn-default btn-sm" href="javascript:return false" role="button">Agregar</a>
-                              <a id="<?php echo "save_".$row["idmenu"] ?>" data-loading-text="Espere..." class="btn btn-primary btn-sm" href="#" role="button">Guardar</a>
-                            
+                            <div class="panel-footer form-inline"> 
+                            <?php
+                              if($row["anytext"]!=1) {
+                            ?> 
+                              <a id="<?php echo "add_".$row["idmenu"] ?>"  class="btn btn-default btn-sm" href="#" role="button">Agregar Item</a>
+                            <?php } ?>
                             </div>
                             <script type="text/javascript">
                               setEvents("<?php echo $row["idmenu"] ?>");
@@ -340,17 +518,34 @@ function setTrashItemEvent(idMenu,idItem){
 
 <script>
     
+
+
     $("#addMenu").click(function(){
       var btn = $("#addMenu").button('loading')
 
        var success = function( data) {
-          addMenu($("#name").val(),$("#label").val(), data.error);
+          addMenu($("#name").val(),$("#label").val(),$("#anyText").is(':checked'), data.error);
           btn.button('reset');
+          $('#menuList').append($('<option>', {
+           value: data.error,
+           text: $("#name").val()
+          }));
+            $("#listmenu").hide()
            $("#name").val("");
-          $("#label").val("");
+           $("#label").val("");
+           $("#anyText").prop( "checked", false );
+          $("#menuList1").val();
+           //TODO
+
+
+
       };  
 
-      var data =  { name: $("#name").val(), label: $("#label").val(), action:"add", table:"menu" } ;
+      var data =  { name: $("#name").val(),
+      "goto":$("#menuList1").val(),
+      anytext:$("#anyText").is(':checked'), 
+      label: $("#label").val(), 
+      action:"add", table:"menu" } ;
        callAjax(data,success); 
         event.preventDefault()
     })
