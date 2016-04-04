@@ -86,6 +86,26 @@ items.push( $("#itemType").val());
 			}
 		
 		break;
+		case "edit":
+			$table = $_POST["table"];
+			switch ($table) {
+				case 'item':
+					 //updateItem($idmenu,$iditem, $name,$orden, $type, $url, $nextmenu)
+					
+					$val = $db->updateItem($_POST["idmenu"],$_POST["itemId"],$_POST["items"][1], 
+										0 , $_POST["items"][0], $_POST["items"][3], 
+										$_POST["items"][2]);
+
+					
+					$val = $_POST["itemId"];
+					printOuput($val, "Actilizacion ejecutada con exito");
+					break;
+				
+				default:
+					# code...
+					break;
+			}
+			break;
 		case "delete":
 			$table = $_POST["table"];
 			switch($table){	
@@ -257,7 +277,7 @@ items.push( $("#itemType").val());
 				//		$db->getItemInteraction($_SESSION["interaction"], $_SESSION["ussd"], $_SESSION["idmenu"],$_POST["command"]);
 
 				//	$_SESSION["interaction"] = ($_SESSION["interaction"] +1 );
-					if(isset($_SESSION["goto"]))
+					if(isset($_SESSION["goto"]) && $_SESSION["goto"] >0)
 						$_POST["command"]="";
 
 					$opts = $db->getMenuByText($_SESSION["idmenu"], 
@@ -266,7 +286,7 @@ items.push( $("#itemType").val());
 						$_SESSION["itemname"] = $item["name"];
 						$_SESSION["iditem"] = $item["iditem"];
 						$_SESSION["type"] = $item["type"];
-						if(isset($item["goto"]))
+						if(isset($item["goto"]) && $item["goto"]>0)
 							$_SESSION["next_menu"] = $item["goto"];
 						else
 							$_SESSION["next_menu"] = $item["next_menu"];

@@ -88,6 +88,22 @@ class LocalDB {
 	}
 
 
+	function updateItem($idmenu,$iditem, $name,$orden, $type, $url, $nextmenu){
+		$name = addslashes($name);
+		$label =  addslashes($label);
+		$sql = "UPDATE  item set name = '$name', type=$type, next_menu=$nextmenu, url='$url', orden = $orden ";
+		$sql .="where iditem= $iditem";
+		if(mysqli_query( $this->connection,$sql)===TRUE){
+			//error_log( "$sql: ",mysqli_affected_rows($this->connection));
+			return mysqli_affected_rows($this->connection);
+		}else{
+			//error_log( "$sql, Falla insertar programacion: " . mysqli_error($this->connection),0);
+			return 0;
+		}
+
+	}
+
+
 	function addTree($idCode, $idMenu, $orden){
 		$idCode = addslashes($idCode);
 		$idMenu =  addslashes($idMenu);

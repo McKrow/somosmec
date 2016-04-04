@@ -48,9 +48,11 @@
 
     <script>
    
-  
-
+  var itemOption = "";
+  var globalItemId = "";
  $( document ).ready(function() {
+    
+
     $("#msg").hide();
     $("#urlInput").hide();
 
@@ -120,13 +122,24 @@ function setEvents(idMenu){
         
   })
   $("#add_"+idMenu).on("click",{"idMenu":idMenu},function(event){
+    itemOption = "add";
     idMenu = event.data.idMenu;
     $("#msg").hide();
     showItemModal();
 
-    $( "#addElement" ).unbind( "click" );
+   setEventsAddItem(idMenu,"")
+ 
+})
+
+}
+
+ function setEventsAddItem(idMenu, idItem){
+
+ $( "#addElement" ).unbind( "click" );
+
     $("#addElement").bind("click",{"idMenu":idMenu},function(event){
 
+    //  itemOption ="add"
       if( $("#itemText").val() ==""){
       $("#msg").html("Por favor escriba la <strong>opcion</strong> que debe mostrarse");
         $("#msg").show();
@@ -134,7 +147,7 @@ function setEvents(idMenu){
       }
 
 
-      if($("#itemType").val()==1){
+    /*  if($("#itemType").val()==1){
         if($("#menuList").val()==-1){
           $("#msg").html("Por favor seleccione el <strong>menu</strong> que debe mostrarse");
           $("#msg").show();
@@ -146,35 +159,37 @@ function setEvents(idMenu){
           $("#msg").show();
           return;
         }
-      }
-
+      }*/
     
-      addItem(idMenu);
+      addItem(idMenu, idItem);
     
     })
- 
-})
 
-}
+ }
 
- function addItem(idMenu){
+ function addItem(idMenu, idItem){
    //var btn = $(this).button('loading')
     var items = new Array();
-    //jQuery("#list_"+idMenu+" li span").each(function(){
-    //  if($(this).text()!= "")
-    //      items.push($(this).text());
-   // });
 
     items.push( $("#itemType").val());
     items.push( $("#itemText").val());
+
     items.push( $("#menuList").val());
+    
     items.push( $("#itemUrl").val());
 
     var success = function (data){
      // btn.button('reset');
-      addItemGui(idMenu, data.error,items);
-    }
-     var data =  { idmenu:idMenu, action:"add", table:"item", items:items } ;
+     if(data.error > 0){
+      if(itemOption =="edit"){
+          $("#item_"+idMenu+"_"+idItem).html()
+       }
+        addItemGui(idMenu, data.error,items);
+     
+      }
+     }
+
+     var data =  { idmenu:idMenu, action:itemOption, table:"item","itemId" :idItem, items:items } ;
       callAjax(data,success); 
       event.preventDefault()
 
@@ -184,12 +199,26 @@ function setEvents(idMenu){
  function addItemGui(idMenu,iditem,items){
 
       // idMenu = event.data.idMenu
+    var items = new Array();
+
+    items.push( $("#itemType").val());
+    items.push( $("#itemText").val());
+    items.push( $("#menuList").val());
+    items.push( $("#itemUrl").val());
+
+
+
+      globalItemId = iditem;
         id = iditem;
         idValue = idMenu+"_"+ id
       text= $("#itemType option:selected").text();
       menu= $("#menuList option:selected").text();
+      if ($("#menuList").val() == -1)
+        menu = ""
+
       url= $("#itemUrl").val();
-      
+
+
        var htmlValue = '<div><span aria-hidden="true"></span> '
         htmlValue += '<b>Item: </b>'+  $("#itemText").val() 
         htmlValue += '<br/><b>Tipo: </b>'+  text
@@ -198,7 +227,7 @@ function setEvents(idMenu){
         else
           htmlValue += '<br/><b>Menu: </b>'+ menu
 
-        htmlValue += '</span><div class="pull-right" style="float:right;">'
+        htmlValue += '</span><div>'
         htmlValue += '<button id="trash_'+idValue+'" type="button" class="pull-right btn btn-default btn-xs">'
         htmlValue +='<span class="glyphicon glyphicon-trash" aria-hidden="true"></span>'
         htmlValue +='</button>'
@@ -209,15 +238,22 @@ function setEvents(idMenu){
         htmlValue +='</div></li>';
 
        $("#itemText").val("")
-        var el = document.createElement('li');
+        var el ;
+       if(itemOption =="add"){
+           el = document.createElement('li');
 
-       $( el ,{
-        'class': 'list-group-item ui-sortable-handle'
-      }).appendTo("#list_"+idMenu);
-       $(el).attr({id:"item_"+idValue});
+           $( el ,{
+            'class': 'list-group-item ui-sortable-handle'
+            }).appendTo("#list_"+idMenu);
+                $(el).attr({id:"item_"+idValue});
+         $(el).addClass("list-group-item ui-sortable-handle")
+
+        }else{
+          el = $("#item_"+idValue)
+        }
        $(el).html(htmlValue)
-       $(el).addClass("list-group-item ui-sortable-handle")
-       
+      
+       setEditItemEvent(idMenu, id,items);
        setTrashItemEvent(idMenu, id);
        showItemModal();
        event.preventDefault()
@@ -263,6 +299,7 @@ $(el).hide().fadeIn(500)
 }
 
   function setTrashItemEvent(idMenu,idItem){
+    //globalItemId = idItem
     $("#trash_"+idMenu+"_"+idItem).click(function(){
 
         var r = confirm("¿Esta seguro de borrar este item?");
@@ -276,6 +313,32 @@ $(el).hide().fadeIn(500)
             }
   })
 }
+
+  function setEditItemEvent(idMenu,idItem,item){
+ // globalItemId = idItem
+    $("#edit_"+idMenu+"_"+idItem).on("click",{"idMenu":idMenu},function(event){
+        showItemModal();
+         idMenu = event.data.idMenu;
+        itemOption ="edit";
+        $("#itemType").val(item[0]);
+        $("#itemText").val(item[1])
+        $("#menuList").val(item[2])
+        $("#itemUrl").val(item[3])
+     
+        if($("#itemType").val() ==1){
+          $("#menuInput").show();
+          $("#urlInput").hide();
+        }else{
+          $("#menuInput").hide();
+          $("#urlInput").show();
+        }
+        setEventsAddItem(idMenu, idItem)
+
+        
+  }) 
+
+}
+
 
 </script>
 </head>
@@ -447,7 +510,7 @@ $(el).hide().fadeIn(500)
                                 echo '<li id="item_'.$row["idmenu"].'_'.$item["iditem"].'"" ';
                                 echo 'class="list-group-item"> <div><span>';
                                 echo '<b>Item: </b> '.$item["name"];
-                                if(isset($item["url"])){
+                                if($item["type"] ==2){
                                  echo '</br><b>Tipo: </b>Redireccionar Petici&oacute;n';
                                  echo '</br><b>URL: </b> '.$item["url"];
                                 }else{
@@ -457,7 +520,7 @@ $(el).hide().fadeIn(500)
                               echo "</span>";
                                  
                                  ?>
-                                   <div class="pull-right" style="float:right;">
+                                   <div>
                                   
 
                                     <button id="trash_<?php echo $row["idmenu"]."_".$item["iditem"]?>" type="button" class="pull-right btn btn-default btn-xs">
@@ -467,6 +530,17 @@ $(el).hide().fadeIn(500)
                                       <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
                                     </button>
                                     <script type="text/javascript">
+                                    //item[0]=
+                                    var items = new Array();
+
+
+                                    items.push("<?php echo $item["type"]; ?>");
+                                    items.push("<?php echo $item["name"]; ?>");
+                                    items.push("<?php echo $item["next_menu"]; ?>");
+                                    items.push("<?php echo $item["url"]; ?>");
+                                    
+                                    setEditItemEvent("<?php echo $row["idmenu"] ?>","<?php echo $item["iditem"] ?>", items)
+
                                     setTrashItemEvent("<?php echo $row["idmenu"] ?>","<?php echo $item["iditem"] ?>")
 
                                     </script>
