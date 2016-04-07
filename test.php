@@ -104,7 +104,7 @@
                   role="button">
                  </span> Enviar
                  </a>
-                 <a id="btnCancel"   class="btn btn-default" href="javascript:return false" role="button">
+                 <a id="btnCancel"   class="btn btn-default" href="./test.php" role="button">
                    Cancelar
                  </a>
               </form>
@@ -181,7 +181,7 @@ $("#btnSend").click(function(){
 
 })
 
-$("#btnCancel").click(function(){
+/*$("#btnCancel").click(function(){
 
    var btn = $(this).button('loading')
     var transaction ="BEGIN"
@@ -194,7 +194,7 @@ $("#btnCancel").click(function(){
       event.preventDefault()   
     
 
-})
+})*/
 
 
 

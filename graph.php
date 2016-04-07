@@ -130,6 +130,18 @@
             <div class="form-group">         
                <a id="search" class="btn btn-primary" data-loading-text="Buscando..." href="#" role="button">Buscar</a>
            </div>
+ <div class="form-group">
+           <div class="dropdown">
+  <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+    Descarga
+    <span class="caret"></span>
+  </button>
+  <ul class="dropdown-menu" aria-labelledby="descargamenu">
+    <li><a id="csv" href="#">Descarga como CSV</a></li>
+  </ul>
+</div>
+  </div>
+
       </form>
       </div>
      
@@ -150,6 +162,14 @@
         $("#endDate").on("dp.change", function (e) {
             $('#initDate').data("DateTimePicker").maxDate(e.date);
         });
+
+        $("#csv").click(function (){
+          fechaI = $("#initDate").val();
+          fechaF = $("#endDate").val();
+          window.location='cgi/download.php?fechaI='+fechaI + '&fechaF='+fechaF
+        });
+
+  
 
 
         $("#search").click(function (){
@@ -181,9 +201,6 @@ function generateGraph(){
      var data =  {  idclient:"1",table:"pie", action:"query",fechaIni: fechaI, fechaFin: fechaF } ;
        callAjax(data,success); 
   
- 
-
-
 }
 
 

@@ -189,6 +189,19 @@ where a.idmenu = b.idmenu and ussd= "'.$ussd.'" and a.event_date between "'.$dat
 		return mysqli_query( $this->connection,$sql);
 	}
 
+
+function getTransactionByDate($ussd,$dateIni, $dateFin){
+		$sql =  'select  sessionId, event_date fecha, msisdn, menu , idmenu, command,iditem 
+				from transactions  where command is not null 
+				and ussd= "'.$ussd.'"  
+				and  event_date between "'.$dateIni.'" AND "'.$dateFin.'" 
+				order by event_date asc';
+		error_log( "getTransactionByDate: $sql",0);
+		return mysqli_query( $this->connection,$sql);
+		
+
+	}
+
 	function getSummaryByDate($ussd,$dateIni, $dateFin){
 		$sql =  'select   DATE_FORMAT(event_date, "%d-%m-%Y") fecha , idmenu, command , count(command) cant, iditem
 				from transactions  where command is not null 
