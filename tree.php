@@ -80,8 +80,8 @@
           </ul>
         </div>
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-          <h3 class="page-header">Creaci&oacute;n de Menu</h3>
-          Arrastra tu menu disponible (izquierda) a al cuadro que ser&aacute; tu menu final
+          <h3 class="page-header">Creaci&oacute;n de Arbol</h3>
+          Arrastra tu menu disponible (izquierda)  al cuadro que ser&aacute; tu Menu de Inicio
            <div class="pull-right"> <a id="saveMenu"  data-loading-text="Loading..."  class="btn btn-primary" href="javascript:return false" role="button">
           <span class="glyphicon glyphicon-floppy-save"></span> Salvar </a> </div>
           <br></br>

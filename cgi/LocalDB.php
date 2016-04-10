@@ -272,12 +272,40 @@ function getTransactionByDate($ussd,$dateIni, $dateFin){
 	 	return '';
 	}
 
+ function deleteTransactionByMenu($idmenu){
+ 	$strSQL = "DELETE FROM transactions WHERE idmenu = $idmenu";
+		
+		if(mysqli_query( $this->connection,$strSQL)===TRUE){
+			//error_log( "$strSQL",0);
 
+			return mysqli_affected_rows($this->connection);
+		}else{
+			error_log( "$strSQL, Falla  borrar detalle: " . mysqli_error($this->connection),0);
+			return 0;
+		}
+
+ }
+
+ function deleteTransactionByItem($iditem){
+ 	$strSQL = "DELETE FROM transactions WHERE iditem = $iditem";
+		
+		if(mysqli_query( $this->connection,$strSQL)===TRUE){
+			//error_log( "$strSQL",0);
+
+			return mysqli_affected_rows($this->connection);
+		}else{
+			error_log( "$strSQL, Falla  borrar detalle: " . mysqli_error($this->connection),0);
+			return 0;
+		}
+
+ }
 //Funcion para borrar el un menu
 	function deleteMenuById($idmenu){
 
 		$strSQL = "DELETE FROM menu WHERE idmenu = $idmenu";
 		
+		 $this->deleteTransactionByMenu($idmenu);
+
 		if(mysqli_query( $this->connection,$strSQL)===TRUE){
 			//error_log( "$strSQL",0);
 
@@ -293,6 +321,7 @@ function getTransactionByDate($ussd,$dateIni, $dateFin){
 //Funcion para borrar el un menu
 	function deleteItemById($iditem){
 
+		$this->deleteTransactionByItem($iditem);
 		$strSQL = "DELETE FROM item WHERE iditem = $iditem";
 		
 		if(mysqli_query( $this->connection,$strSQL)===TRUE){
